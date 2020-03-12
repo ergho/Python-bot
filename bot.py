@@ -126,46 +126,8 @@ class Bot(commands.Bot):
         
         print(ctx.author.is_mod == 1)
 
-#        print(silly)
-        #print(users)
-        #games = await self.get_users()
-        #print(games)
-        #print(ctx.channel.id)
-        #print(f'{ctx.author.color} and a fun tag is {ctx.author.tags.get("color")}')
-
-        #if ctx.author.name in users.moderators:
-        #    print('you are mod')
-        #elif ctx.author.name in users.broadcaster:
-            
-         #   print(users)
-        #for i in users.all:
-        #    print(i)
-
 if __name__ == '__main__':
 
     params = config('database.ini', 'botconf')
     bot = Bot(prefix = '!', **params)
     bot.run()
-
-
-
-#pattern = re.compile("^([1-9]\d{1,3})?(d)([1-3]\d{0,9})")¨
-    
-    #pattern = re.compile("^([1-9]\d{1,3})?(d)([1-9]\d{0,2})(\+|\-|k|[0-9])\d{0,2}")
-    #adv_pat = re.compile("(\d*)(d\d*)((?:[+d-](?:\d+)))")
-    #adv_pat = re.compile("(\d*)(d\d*)?((?:[+d-](?:\d+)))")
-#     if roll.startswith('!1d', 0):
-#         if valid(roll[1:]):
-#             dice_roll = splitter(roll)
-
-
-# #    elif roll.startswith('*1d', 0)
-#     else:
-
- # elif simp_pat.match(roll):
-        #     if len(result) == 1:
-        #         await ctx.send(f"Here are your dice! ({unpack(result)}) @{ctx.author.name}")
-        #         return
-        #     else:
-        #         await ctx.send(f"Here are your dice! ({unpack(result)}) and the total: {total} @{ctx.author.name}")
-        #         return
