@@ -1,4 +1,3 @@
-
 import asyncio
 import asyncpg
 import datetime
@@ -57,9 +56,10 @@ class Bot(commands.Bot):
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.users (
-                user_id             SERIAL PRIMARY KEY,
-                channel             TEXT,
-                username            TEXT
+                user_id             INT PRIMARY KEY generated always as identity,
+                channel             TEXT NOT NULL,
+                username            TEXT NOT NULL,
+                unique              (channel, username)
             )
             """
         )
@@ -91,6 +91,41 @@ class Bot(commands.Bot):
         'Called once when bot enters the chat.'
         print(f"{self.nick} is here!")
 
+    async def event_join(self, user):
+        'This is a possible way of making sure all users get added to the database and get an intial entry into points system, not sure how good it handles multiple users at once?'
+        username = str(user.name).rstrip()
+        channel = str(user.channel)
+        already_exists = await self.db.fetchval(
+            """
+            SELECT user_id from twitch.users
+            WHERE username = $1 AND channel = $2
+            """,
+            username, channel
+        )
+        if not already_exists:
+            await self.db.execute(
+                """
+                INSERT INTO twitch.users (username, channel)
+                VALUES ($1, $2)
+                ON CONFLICT (username, channel) 
+                DO NOTHING
+                """,
+                username, channel
+            )
+            await self.db.execute(
+                """
+                INSERT INTO twitch.points (points, user_id)
+                VALUES (1000, (
+                    SELECT user_id 
+                    FROM twitch.users
+                    WHERE username = $1 and channel = $2 ))
+                """,
+                username, channel
+            )
+        else:
+            return
+
+
     async def event_message(self, ctx):
         'Lets try to store all messages'
         await self.db.execute(
@@ -101,6 +136,7 @@ class Bot(commands.Bot):
             datetime.datetime.now(), ctx.channel.name, ctx.author.name, ctx.content,
             None if ctx.echo else ctx.timestamp.replace(tzinfo = datetime.timezone.utc)
         )
+
         'Always run on all messages'
         if ctx.author.name.lower() == self.nick.lower():
             return
@@ -117,14 +153,6 @@ class Bot(commands.Bot):
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f'Your command is missing an argument @{ctx.author.name}')
 
-    @commands.command()
-    async def test(self, ctx):
-        silly = await self.add_user(ctx)
-        for name in silly.all:
-            hi = await self.get_users(name)
-            print(hi[0][1])
-        
-        print(ctx.author.is_mod == 1)
 
 if __name__ == '__main__':
 
