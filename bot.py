@@ -1,10 +1,12 @@
 import asyncio
 import asyncpg
 import datetime
-import os
+import twitchio
 
+from pathlib import Path
 from twitchio.ext import commands
 from config import config
+from utility import logging
 
 
 class Bot(commands.Bot):
@@ -16,9 +18,9 @@ class Bot(commands.Bot):
         loop = loop or asyncio.get_event_loop()
         super().__init__(loop = loop, initial_channels = initial_channels, **kwargs)
 
-        for file in sorted(os.listdir('cogs')):
-            if file.endswith('.py'):
-                self.load_module('cogs.' + file[:-3])
+        for file in Path('cogs').iterdir():
+            if file.with_suffix('.py').is_file():
+                self.load_module('cogs.' + file.name[:-3])
         
         self.db = self.database = self.database_connection_pool = None
         self.connected_to_database = asyncio.Event()
@@ -83,10 +85,6 @@ class Bot(commands.Bot):
             """
         )
 
-    async def add_user(self, ctx):
-        users = await self.get_chatters(ctx.channel.name)
-        return users
-
     async def event_ready(self):
         'Called once when bot enters the chat.'
         print(f"{self.nick} is here!")
@@ -102,56 +100,71 @@ class Bot(commands.Bot):
             """,
             username, channel
         )
-        if not already_exists:
-            await self.db.execute(
-                """
-                INSERT INTO twitch.users (username, channel)
-                VALUES ($1, $2)
-                ON CONFLICT (username, channel) 
-                DO NOTHING
-                """,
-                username, channel
-            )
-            await self.db.execute(
-                """
-                INSERT INTO twitch.points (points, user_id)
-                VALUES (1000, (
-                    SELECT user_id 
-                    FROM twitch.users
-                    WHERE username = $1 and channel = $2 ))
-                """,
-                username, channel
-            )
+        if username != self.nick:
+            if not already_exists:
+                await self.db.execute(
+                    """
+                    INSERT INTO twitch.users (username, channel)
+                    VALUES ($1, $2)
+                    ON CONFLICT (username, channel) 
+                    DO NOTHING
+                    """,
+                    username, channel
+                )
+                await self.db.execute(
+                    """
+                    INSERT INTO twitch.points (points, user_id)
+                    VALUES (1000, (
+                        SELECT user_id 
+                        FROM twitch.users
+                        WHERE username = $1 and channel = $2 ))
+                    """,
+                    username, channel
+                )
+            else:
+                return
         else:
             return
 
 
-    async def event_message(self, ctx):
+    async def event_message(self, message):
         'Lets try to store all messages'
         await self.db.execute(
             """
             INSERT INTO twitch.messages (timestamp, channel, author, message, message_timestamp)
             VALUES ($1, $2, $3, $4, $5)
             """,
-            datetime.datetime.now(), ctx.channel.name, ctx.author.name, ctx.content,
-            None if ctx.echo else ctx.timestamp.replace(tzinfo = datetime.timezone.utc)
+            datetime.datetime.now(), message.channel.name, message.author.name, message.content,
+            None if message.echo else message.timestamp.replace(tzinfo = datetime.timezone.utc)
         )
 
         'Always run on all messages'
-        if ctx.author.name.lower() == self.nick.lower():
+        if message.author.name.lower() == self.nick.lower():
             return
+        
+        ctx = await self.get_context(message, cls = twitchio.Context)
 
-        await self.handle_commands(ctx)
+        await self.handle_commands(message, ctx=ctx)
 
         if 'hello' in ctx.content.lower():
             await ctx.channel.send(f"Hi, @{ctx.author.name}!")
     
     async def event_command_error(self, ctx, error):
-        if isinstance(error, commands.CommandNotFound):
-            await ctx.send(f"That isn't a valid command @{ctx.author.name}, use !commands to see valid commands.")
+        if isinstance(error, commands.BadArgument):
+            await ctx.send(str(error).replace('`', "'").replace('<class' , '').replace('>', ''))
+
+        elif isinstance(error, commands.CommandNotFound):
+            await ctx.send(f"That isn't a valid command @{ctx.author.name}")
         
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f'Your command is missing an argument @{ctx.author.name}')
+
+    async def event_raw_data(self, data):
+        logging.raw_data_logger.info(data)
+    
+    @commands.command(name='test')
+    async def test(self, ctx):
+        print('Wow this worked?')
 
 
 if __name__ == '__main__':
