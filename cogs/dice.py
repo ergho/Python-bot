@@ -19,50 +19,45 @@ class Dice:
         if check_roll == 0:
             await ctx.send(f'Please use valid characters @{ctx.author.name}')
 
-        if check_roll == -1:
-            dice, size, add, sub, drop = self.splitter(roll)
-            result = rolling_dice(dice, size)
-            total = sum(result) + add - sub
+        elif check_roll == 1:
+            if roll.startswith('!', 0):
+                dice, size, add, sub, drop = self.splitter(roll[1:])
+                adv = 1
+            elif roll.startswith('*', 0):
+                dice, size, add, sub, drop = self.splitter(roll[1:])
+                dis = 1
+            else:
+                dice, size, add, sub, drop = self.splitter(roll)
+
+            if adv or dis:
+                res1 = rolling_dice(dice, size)
+                res2 = rolling_dice(dice, size)
+                if adv:
+                    result = res1 if res1 > res2 else res2
+                elif:
+                    result = res1 if res1 < res2 else res2
+            else:
+                result = rolling_dice(dice, size)
+            
             if drop > 0 and dice > drop:
                 for i in range(drop):
                     result.remove(min(result))
             else:
                 await ctx.send(f'You are trying to drop more dice than you rolled, please keep at least 1 die @{ctx.author.name}')
             
+            total = sum(result) + add - sub
+
             if len(result) > 1:
                 await ctx.send(f'Here are your dice! ({unpack(result)}) and the total: {total} @{ctx.author.name}')
             else:
                 await ctx.send(f'Here are your dice! ({total}) @{ctx.author.name}')
 
-        elif check_roll == 1:
-            dice, size, add, sub, drop = self.splitter(roll[1:])
-            if roll.startswith('!', 0):
-                adv = 1
-            elif roll.startswith('*', 0):
-                dis = 1
-            res1 = rolling_dice(dice, size)
-            res2 = rolling_dice(dice, size)
-            if adv:
-                result = res1 if res1 > res2 else res2
-            elif:
-                result = res1 if res1 < res2 else res2
-            if len(result) > 1:
-                await ctx.send(f'Here are your dice! ({self.unpack(result)}) and the total: {sum(result)} @{ctx.author.name}')
-            else:
-                await ctx.send(f'Here are your dice! ({sum(result)}) @{ctx.author.name}')
-
     def valid(self, roll):
-        # ([!\*]).(\d*)(d\d*)?((?:[+d-](?:\d+)))
-        allowed_chars = set("0123456789+-d!*")
-        adv_pat  = re.compile('^([!\*])(\d{1,2})([d]\d{1,3})?(?:[+d-](?:\d{1,3}))$')
-        # \d*)(d\d*)?((?:[+d-](?:\d+)))
-        simp_pat = re.compile('^(\d{1,2})([d]\d{1,3})?(?:([+d-](\d{1,3})))$')
-        if set(roll).issubset(allowed_chars) and adv_pat.match(roll):
-            return 1 #adv/dis Valid input
-        elif set(roll).issubset(allowed_chars) and simp_pat.match(roll):
-            return -1 #normal input
+        allowed_chars = set('0123456789+-d!*')
+        if set(roll).issubset(allowed_chars) and re.match('^(\d{1,2})([d]\d{1,3})?(?:([+d-](\d{1,3})))$'):
+            return 1 # valid input
         else:
-            return 0 #Error with input
+            return 0 # invalid input
 
     def splitter(self, roll):
         def dice_value(roll, value):
