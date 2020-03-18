@@ -58,7 +58,7 @@ class Bot(commands.Bot):
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.users (
-                user_id             INT PRIMARY KEY generated always as identity,
+                user_id             INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 channel             TEXT NOT NULL,
                 username            TEXT NOT NULL,
                 unique              (channel, username)
@@ -71,6 +71,27 @@ class Bot(commands.Bot):
                 user_id             INT UNIQUE NOT NULL,
                 points              INT,
                 FOREIGN KEY         (user_id) REFERENCES twitch.users (user_id) ON DELETE CASCADE
+            )
+            """
+        )
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS twitch.commands (
+                channel             TEXT,
+                command             TEXT,
+                message             TEXT,
+                PRIMARY KEY         (channel, command)
+            )
+            """
+        )
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS twitch.command_alias (
+                channel             TEXT,
+                command             TEXT,
+                alias               TEXT,
+                PRIMARY KEY         (channel, alias),
+                FOREIGN KEY         (channel, command) REFERENCES twitch.commands(channel, command) ON DELETE CASCADE
             )
             """
         )
