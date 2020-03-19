@@ -10,13 +10,10 @@ from utility import logging
 
 
 class Bot(commands.Bot):
-    def __init__(self, loop = None, initial_channels = None, **kwargs):
+    def __init__(self, loop = None, **kwargs):
 
-        if initial_channels is None:
-            initial_channels = []
-        initial_channels = initial_channels.split(' ')
         loop = loop or asyncio.get_event_loop()
-        super().__init__(loop = loop, initial_channels = initial_channels, **kwargs)
+        super().__init__(loop = loop, **kwargs)
 
         for file in Path('cogs').iterdir():
             if file.with_suffix('.py').is_file():
@@ -32,7 +29,7 @@ class Bot(commands.Bot):
             return
         if self.connected_to_database.is_set():
             self.connected_to_database.clear()
-            params = config ('database.ini', 'postgresql')
+            params = config('config.toml', 'database')
             self.database_connection_pool = await asyncpg.create_pool(**params)
 
             self.db = self.database = self.database_connection_pool
@@ -100,7 +97,6 @@ class Bot(commands.Bot):
             CREATE TABLE IF NOT EXISTS twitch.banlist (
                 user_id             INT,
                 reason              TEXT,
-
                 FOREIGN KEY         (user_id) REFERENCES twitch.users(user_id) 
             )
             """
@@ -142,10 +138,7 @@ class Bot(commands.Bot):
                     """,
                     username, channel
                 )
-            else:
-                return
-        else:
-            return
+        
 
 
     async def event_message(self, message):
@@ -190,6 +183,6 @@ class Bot(commands.Bot):
 
 if __name__ == '__main__':
 
-    params = config('database.ini', 'botconf')
+    params = config('config.toml', 'botconf')
     bot = Bot(prefix = '!', **params)
     bot.run()
