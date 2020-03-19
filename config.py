@@ -1,19 +1,9 @@
-from configparser import ConfigParser
+import toml
 
-def config(filename='database.ini', section='botconf'):
+#Simple parsing of toml config file, returns dictionaries of section or subsection
 
-    parser = ConfigParser()
-    parser.read(filename)
-    conf = {}
-    
-    if parser.has_section(section):
-        params = parser.items(section)
-        for param in params:
-            conf[param[0]] = param[1]
-            
-    else:
-        raise Exception(f'Section {section} not found in the {filename} file.')
-    return conf
-
-if __name__ == '__main__':
-    print(config('database.ini', 'mysql'))
+def config(filename, section, subsection = None):
+    parser = toml.load(filename)
+    if subsection is None:
+        return parser[section]
+    return parser[section][subsection]
