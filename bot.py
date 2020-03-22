@@ -2,6 +2,7 @@ import asyncio
 import asyncpg
 import datetime
 import twitchio
+import toml
 
 from pathlib import Path
 from twitchio.ext import commands
@@ -29,8 +30,7 @@ class Bot(commands.Bot):
             return
         if self.connected_to_database.is_set():
             self.connected_to_database.clear()
-            params = config('config.toml', 'database')
-            self.database_connection_pool = await asyncpg.create_pool(**params)
+            self.database_connection_pool = await asyncpg.create_pool(**params['database'])
 
             self.db = self.database = self.database_connection_pool
             self.connected_to_database.set()
@@ -43,7 +43,7 @@ class Bot(commands.Bot):
         await self.db.execute("CREATE SCHEMA IF NOT EXISTS twitch")
         await self.db.execute(
             """
-            CREATE TABLE IF NOT EXISTS twitch.messages (
+            CREATE TABLE IF NOT EXISTS twitch.messagelog (
                 timestamp           TIMESTAMPTZ PRIMARY KEY DEFAULT NOW(),
                 channel             TEXT,
                 author              TEXT,
@@ -83,20 +83,11 @@ class Bot(commands.Bot):
         )
         await self.db.execute(
             """
-            CREATE TABLE IF NOT EXISTS twitch.command_alias (
-                channel             TEXT,
-                command             TEXT,
-                alias               TEXT,
-                PRIMARY KEY         (channel, alias),
-                FOREIGN KEY         (channel, command) REFERENCES twitch.commands(channel, command) ON DELETE CASCADE
-            )
-            """
-        )
-        await self.db.execute(
-            """
             CREATE TABLE IF NOT EXISTS twitch.banlist (
+                timestamp           TIMESTAMPTZ PRIMARY KEY DEFAULT NOW(),
                 user_id             INT,
                 reason              TEXT,
+                duration            TEXT,
                 FOREIGN KEY         (user_id) REFERENCES twitch.users(user_id) 
             )
             """
@@ -175,14 +166,21 @@ class Bot(commands.Bot):
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
+# #    @commands.check
+#     def check_is_mod(ctx):
+#         return ctx.author.is_mod == 1
+    def is_mod(ctx):
+        return ctx.author.is_mod == 1
     
     @commands.command(name='test')
+    @commands.check(is_mod)
     async def test(self, ctx):
         print('Wow this worked?')
 
 
 if __name__ == '__main__':
 
-    params = config('config.toml', 'botconf')
-    bot = Bot(prefix = '!', **params)
+    #params = config('config.toml', 'botconf')
+    params = toml.load('config.toml')
+    bot = Bot(prefix = '!', **params['botconf'])
     bot.run()

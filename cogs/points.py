@@ -72,14 +72,13 @@ class Points:
         
         stored = await self.bot.db.fetchval(
             """
-            SELECT p.points 
-            FROM twitch.points as p 
-            RIGHT JOIN twitch.users as u 
-            ON p.user_id = u.user_id 
-            WHERE u.username = $1
-
+            SELECT points 
+            FROM twitch.points 
+            WHERE user_id = (
+                SELECT user_id FROM twitch.users WHERE username = $1 AND channel = $2
+                ) 
             """,
-            username
+            username, ctx.channel.name
         )
 
         if amount > stored:
@@ -92,9 +91,9 @@ class Points:
             UPDATE twitch.points
             SET points = $1
             WHERE user_id = (
-                SELECT user_id FROM twitch.users WHERE username = $2
+                SELECT user_id FROM twitch.users WHERE username = $2 and channel = $3
             )
             """,
-            stored, username
+            stored, username, ctx.channel.name
         )
         await ctx.send(f'{username}, now has {stored} points @{ctx.author.name}')
