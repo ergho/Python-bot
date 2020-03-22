@@ -24,5 +24,5 @@ raw_data_logger = logging.getLogger('raw data')
 raw_data_logger.setLevel(logging.DEBUG)
 raw_data_handler = logging.handlers.TimedRotatingFileHandler(filename = 'logs/raw_data/raw_data.log',
                                                                 when = 'midnight', backupCount = 500000, encoding = 'UTF-8')
-raw_data_handler.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+raw_data_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s %(name)s: %(message)s'))
 raw_data_logger.addHandler(raw_data_handler)

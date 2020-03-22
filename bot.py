@@ -6,7 +6,6 @@ import toml
 
 from pathlib import Path
 from twitchio.ext import commands
-from config import config
 from utility import logging
 
 
@@ -47,8 +46,7 @@ class Bot(commands.Bot):
                 timestamp           TIMESTAMPTZ PRIMARY KEY DEFAULT NOW(),
                 channel             TEXT,
                 author              TEXT,
-                message             TEXT,
-                message_timestamp   TIMESTAMPTZ
+                message             TEXT
             )
             """
         )
@@ -85,10 +83,10 @@ class Bot(commands.Bot):
             """
             CREATE TABLE IF NOT EXISTS twitch.banlist (
                 timestamp           TIMESTAMPTZ PRIMARY KEY DEFAULT NOW(),
-                user_id             INT,
+                channel             TEXT,
+                username            TEXT,
                 reason              TEXT,
-                duration            TEXT,
-                FOREIGN KEY         (user_id) REFERENCES twitch.users(user_id) 
+                duration            TEXT
             )
             """
         )
@@ -129,18 +127,15 @@ class Bot(commands.Bot):
                     """,
                     username, channel
                 )
-        
-
 
     async def event_message(self, message):
         'Lets try to store all messages'
         await self.db.execute(
             """
-            INSERT INTO twitch.messages (timestamp, channel, author, message, message_timestamp)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO twitch.messagelog (timestamp, channel, author, message)
+            VALUES ($1, $2, $3, $4)
             """,
-            datetime.datetime.now(), message.channel.name, message.author.name, message.content,
-            None if message.echo else message.timestamp.replace(tzinfo = datetime.timezone.utc)
+            datetime.datetime.now(), message.channel.name, message.author.name, message.content
         )
 
         'Always run on all messages'
@@ -166,21 +161,20 @@ class Bot(commands.Bot):
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
-# #    @commands.check
-#     def check_is_mod(ctx):
-#         return ctx.author.is_mod == 1
-    def is_mod(ctx):
-        return ctx.author.is_mod == 1
-    
-    @commands.command(name='test')
-    @commands.check(is_mod)
+
+    @commands.command(name = 'test')
     async def test(self, ctx):
         print('Wow this worked?')
-
-
+        print(ctx.author)
+        henlo = await self.get_chatters(ctx.channel.name)
+        henlos = await self.get_users(ctx.channel.name)
+ 
+        print (henlo)
+        print(ctx.author)
+        print(ctx.author.id)
+        print(ctx.author.channel)
 if __name__ == '__main__':
 
-    #params = config('config.toml', 'botconf')
     params = toml.load('config.toml')
     bot = Bot(prefix = '!', **params['botconf'])
     bot.run()
