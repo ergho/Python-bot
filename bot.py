@@ -96,7 +96,8 @@ class Bot(commands.Bot):
         print(f"{self.nick} is here!")
 
     async def event_join(self, user):
-        'This is a possible way of making sure all users get added to the database and get an intial entry into points system, not sure how good it handles multiple users at once?'
+        'Adds all users to the database and adds starting points'
+        #Todo check on how well this scales?
         username = str(user.name).rstrip()
         channel = str(user.channel)
         already_exists = await self.db.fetchval(
