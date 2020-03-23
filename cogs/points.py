@@ -1,17 +1,47 @@
 from twitchio.ext import commands
 
-
 @commands.cog()
 class Points:
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(aliases= ('points',))
-    async def check_points(self, ctx, username = None):
-        
+    async def check_points(self, ctx, username: str = None):
         if username is None:
-            username = ctx.channel.name
-        stored = await self.bot.db.fetchval(
+            username = ctx.author.name
+        points = await self.get_points(ctx, username)
+        if points:
+            await ctx.send(f'{username} have {points} points @{ctx.author.name}')
+        else:
+            await ctx.send(f'{username} have yet to get any points @{ctx.author.name}')
+
+    @commands.command(aliases = ('a_points', 'adding_points'))
+    async def add_points(self, ctx, amount:int, username: str):
+        if ctx.author.is_mod == 1:
+            await self.modify_points(ctx, points, username, 'add')
+            await ctx.send(f'{username} now have {points} points.')
+        else:
+            await ctx.send('Mod only command!')
+
+    @commands.command(aliases = ('add_all',))
+    async def bulk_add_points(self, ctx, amount:int):
+        if ctx.author.is_mod == 1:
+            users = await self.bot.get_chatters(ctx.channel.name)
+            for name in users.all:
+                await self.modify_points(ctx, points, name, 'add')
+            await ctx.send(f'Added {amount} points to everyone in chat !')
+        else:
+            await ctx.send('Mod only command!')
+
+    @commands.command(aliases = ('r_points',))
+    async def remove_points(self, ctx, amount:int, username:str):
+        if ctx.author.is_mod == 1:
+            await self.modify_points(ctx, points, username, 'sub')
+            await ctx.send(f'{username}, now have {points} points @{ctx.author.name}')
+    
+    async def get_points(self, ctx, username:str):
+        
+        points = await self.bot.db.fetchval(
             """
             SELECT points 
             FROM twitch.points  
@@ -22,70 +52,20 @@ class Points:
             """,
             username, ctx.channel.name
         )
-
-        if stored:
-            await ctx.send(f'{username} have {stored} points @{ctx.author.name}')
-        else:
-            await ctx.send(f'{username} have yet to get any points @{ctx.author.name}')
-
-    @commands.command(aliases = ('a_points', 'adding_points'))
-    async def add_points(self, ctx, amount:int, username):
-        #check = await self.bot.is_mod(ctx)
-        if ctx.author.is_mod == 1:
-            await self.bot.db.execute(
-                """
-                INSERT INTO twitch.points (points, user_id)
-                VALUES ($1, (
-                    SELECT user_id 
-                    FROM twitch.users 
-                    WHERE username = $2 and channel = $3))
-                ON CONFLICT (user_id) DO
-                UPDATE SET points = twitch.points.points + $1
-                """,
-                amount, username, ctx.channel.name
-            )
-        else:
-            await ctx.send('Mod only command!')
-
-    @commands.command()
-    async def bulk_add_points(self, ctx, amount:int):
-        if ctx.author.is_mod == 1:
-            users = await self.bot.get_chatters(ctx.channel.name)
-            for name in users.all:
-                await self.bot.db.execute(
-                    """
-                    INSERT INTO twitch.points (points, user_id)
-                    VALUES ($1, (
-                        SELECT user_id 
-                        FROM twitch.users 
-                        WHERE username = $2 and channel = $3))
-                    ON CONFLICT (user_id) DO
-                    UPDATE SET points = twitch.points.points + $1
-                    """,
-                    amount, name, ctx.channel.name
-                )
-        else:
-            return
-
-    @commands.command(name='r_points')
-    async def remove_points(self, ctx, amount:int, username):
+        return points
+    
+    async def modify_points(self, ctx, amount:int, username:str, modify:str):
         
-        stored = await self.bot.db.fetchval(
-            """
-            SELECT points 
-            FROM twitch.points 
-            WHERE user_id = (
-                SELECT user_id FROM twitch.users WHERE username = $1 AND channel = $2
-                ) 
-            """,
-            username, ctx.channel.name
-        )
+        points = await self.get_points(ctx, username)
 
-        if amount > stored:
-            stored = 0
-        else:
-            stored = stored - amount
-
+        if modify.lower() == 'add':
+            points = points + amount
+        elif modify.lower == 'sub':
+            if amount > points:
+                points = 0
+            else:
+                points = points - amount
+        
         await self.bot.db.execute(
             """
             UPDATE twitch.points
@@ -94,6 +74,5 @@ class Points:
                 SELECT user_id FROM twitch.users WHERE username = $2 and channel = $3
             )
             """,
-            stored, username, ctx.channel.name
+            amount, username, ctx.channel.name
         )
-        await ctx.send(f'{username}, now has {stored} points @{ctx.author.name}')
