@@ -44,56 +44,58 @@ class Dice:
             elif drop > dice:
                 await ctx.send(f'You are trying to drop more dice than you rolled, please keep at least 1 die @{ctx.author.name}')
             total = sum(result) + add - sub
-            if len(result) > 1:
-                fun = await self.unpack(result)
-                await ctx.send(f'Here are your dice! ({fun}) and the total: {total} @{ctx.author.name}')
+            if len(result) > 1 and len(result) < 20:
+                #limits the length of your output
+                res = await self.unpack(result)
+                await ctx.send(f'Here are your dice! ({res}) and the total: {total} @{ctx.author.name}')
             else:
                 await ctx.send(f'Here are your dice! ({total}) @{ctx.author.name}')
 
-    async def valid(self, roll):
+    async def valid(self, roll:str) -> int:
         allowed_chars = set('0123456789+-d!*')
         if set(roll).issubset(allowed_chars) and re.match('^([!\*])?(\d{1,2})([d]\d{1,3})?(?:[+d-](?:\d{1,3}))$', roll):
             return 1 # valid input
         else:
             return 0 # invalid input
 
-    async def dice_value(self, roll, value):
+    async def dice_value(self, roll:str, value:list) -> list:
         dice = roll.split("d")[0]
         value[0] = int(dice)
         return value
     
-    async def sides_value(self, roll, value):
+    async def sides_value(self, roll:str, value:list) -> list:
         sides = re.split(r"[d\+\-]\s*", roll)[1]
         value[1] = int(sides)
         return value
     
-    async def add_value(self, roll, value):
+    async def add_value(self, roll:str, value:list) -> list:
         add = re.split(r'[d\+]\s*', roll)[2]
         value[2] = int(add)
         return value
     
-    async def sub_value(self, roll, value):
+    async def sub_value(self, roll:str, value:list) -> list:
         sub = re.split(r'[d\-]\s*', roll)[2]
         value[3] = int(sub)
         return value
     
-    async def drop_value(self, roll, value):
+    async def drop_value(self, roll:str, value:list) -> list:
         drop = re.split(r'[d]\s*', roll)[2]
         value[4] = int(drop)
         return value
 
-    async def split(self, flist, roll, default = [0, 0, 0, 0, 0]): 
-        for f in flist:
+    async def split(self, flist:list, roll:str) -> list: 
+        parameters = [0, 0, 0, 0, 0]
+        for func in flist:
             try:
-                await f(roll, default)
+                await func(roll, parameters)
             except:
                 continue
-        return default
+        return parameters
     
-    async def unpack(self, s):
+    async def unpack(self, s)-> list:
         return list(map(int, s))
 
-    async def rolling_dice(self, dice, size):
+    async def rolling_dice(self, dice:int, size:int) -> list:
         result = []
         for i in range(dice):
             roll = random.randint(1, size)
