@@ -1,5 +1,6 @@
 import asyncio
 import asyncpg
+import aiohttp
 import datetime
 import twitchio
 import toml
@@ -13,12 +14,13 @@ class Bot(commands.Bot):
     def __init__(self, loop = None, **kwargs):
 
         loop = loop or asyncio.get_event_loop()
+
         super().__init__(loop = loop, **kwargs)
 
         for file in Path('cogs').iterdir():
             if file.with_suffix('.py').is_file():
                 self.load_module('cogs.' + file.name[:-3])
-        
+        self.aiohttp_session = None        
         self.db = self.database = self.database_connection_pool = None
         self.connected_to_database = asyncio.Event()
         self.connected_to_database.set()
@@ -94,6 +96,8 @@ class Bot(commands.Bot):
     async def event_ready(self):
         'Called once when bot enters the chat.'
         print(f"{self.nick} is here!")
+        if not self.aiohttp_session:
+            self.aiohttp_session = aiohttp.ClientSession(loop=self.loop)
 
     async def event_join(self, user):
         'Adds all users to the database and adds starting points'
@@ -102,7 +106,7 @@ class Bot(commands.Bot):
         channel = str(user.channel)
         already_exists = await self.db.fetchval(
             """
-            SELECT user_id from twitch.users
+            SELECT user_id FROM twitch.users
             WHERE username = $1 AND channel = $2
             """,
             username, channel
@@ -142,7 +146,7 @@ class Bot(commands.Bot):
         'Always run on all messages'
         if message.author.name.lower() == self.nick.lower():
             return
-        
+        #Potentially allowing for different context or addoing onto context for later
         ctx = await self.get_context(message, cls = twitchio.Context)
 
         await self.handle_commands(message, ctx=ctx)
@@ -166,14 +170,7 @@ class Bot(commands.Bot):
     @commands.command(name = 'test')
     async def test(self, ctx):
         print('Wow this worked?')
-        print(ctx.author)
-        henlo = await self.get_chatters(ctx.channel.name)
-        henlos = await self.get_users(ctx.channel.name)
- 
-        print (henlo)
-        print(ctx.author)
-        print(ctx.author.id)
-        print(ctx.author.channel)
+
 if __name__ == '__main__':
 
     params = toml.load('config.toml')
