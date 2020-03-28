@@ -102,16 +102,18 @@ class Bot(commands.Bot):
     async def event_join(self, user):
         'Adds all users to the database and adds starting points'
         #Todo check on how well this scales?
+        print(type(user))
         username = str(user.name).rstrip()
         channel = str(user.channel)
-        already_exists = await self.db.fetchval(
+
+        if username != self.nick:
+            already_exists = await self.db.fetchval(
             """
             SELECT user_id FROM twitch.users
             WHERE username = $1 AND channel = $2
             """,
             username, channel
         )
-        if username != self.nick:
             if not already_exists:
                 await self.db.execute(
                     """
@@ -146,7 +148,7 @@ class Bot(commands.Bot):
         'Always run on all messages'
         if message.author.name.lower() == self.nick.lower():
             return
-        #Potentially allowing for different context or addoing onto context for later
+        #Potentially allowing for different context or addoing onto context for later work
         ctx = await self.get_context(message, cls = twitchio.Context)
 
         await self.handle_commands(message, ctx=ctx)
