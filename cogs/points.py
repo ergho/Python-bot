@@ -40,7 +40,8 @@ class Points:
             await ctx.send(f'{username}, now have {points} points @{ctx.author.name}')
     
     async def get_points(self, ctx, username:str):
-        
+        #To do consider using joins rather than subquery,
+        #  might lower readability for little to no  benefit?
         points = await self.bot.db.fetchval(
             """
             SELECT points 
