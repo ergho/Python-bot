@@ -26,7 +26,7 @@ class Dice:
                 dice, size, add, sub, drop = await self.split(([self.dice_value, self.sides_value, self.add_value, self.sub_value, self.drop_value]), roll[1:])
                 if size < 2:
                     await(f'Send please roll a dice with at least 2 sides @{ctx.author.name}')
-                    break
+                    return
                 res1 = await self.rolling_dice(dice, size)
                 res2 = await self.rolling_dice(dice, size)
                 if adv:
@@ -37,7 +37,7 @@ class Dice:
                 dice, size, add, sub, drop = dice, size, add, sub, drop = await self.split(([self.dice_value, self.sides_value, self.add_value, self.sub_value, self.drop_value]), roll)
                 if size < 2:
                     await(f'Send please roll a dice with at least 2 sides @{ctx.author.name}')
-                    break
+                    return
                 result = await self.rolling_dice(dice, size)
             
             if drop > 0 and dice > drop:
