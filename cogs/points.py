@@ -4,7 +4,8 @@ from twitchio.ext import commands
 class Points:
     def __init__(self, bot):
         self.bot = bot
-
+    #todo, maybe add something to do with the points?
+    #todo, move the points adding and create database here rather than main cog?
     @commands.command(aliases= ('points',))
     async def check_points(self, ctx, username: str = None):
         if username is None:
