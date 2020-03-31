@@ -50,8 +50,7 @@ class Bot(commands.Bot):
                 author              TEXT,
                 message             TEXT
             )
-            """
-        )
+            """)
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.users (
@@ -60,8 +59,7 @@ class Bot(commands.Bot):
                 username            TEXT NOT NULL,
                 unique              (channel, username)
             )
-            """
-        )
+            """)
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.points (
@@ -69,8 +67,7 @@ class Bot(commands.Bot):
                 points              INT,
                 FOREIGN KEY         (user_id) REFERENCES twitch.users (user_id) ON DELETE CASCADE
             )
-            """
-        )
+            """)
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.commands (
@@ -79,8 +76,7 @@ class Bot(commands.Bot):
                 message             TEXT,
                 PRIMARY KEY         (channel, command)
             )
-            """
-        )
+            """)
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.banlist (
@@ -90,12 +86,12 @@ class Bot(commands.Bot):
                 reason              TEXT,
                 duration            TEXT
             )
-            """
-        )
+            """)
 
     async def event_ready(self):
         'Called once when bot enters the chat.'
         print(f"{self.nick} is here!")
+        #await self.rolling_message()
         if not self.aiohttp_session:
             self.aiohttp_session = aiohttp.ClientSession(loop=self.loop)
 
@@ -112,8 +108,7 @@ class Bot(commands.Bot):
             SELECT user_id FROM twitch.users
             WHERE username = $1 AND channel = $2
             """,
-            username, channel
-        )
+            username, channel)
             if not already_exists:
                 await self.db.execute(
                     """
@@ -122,8 +117,7 @@ class Bot(commands.Bot):
                     ON CONFLICT (username, channel) 
                     DO NOTHING
                     """,
-                    username, channel
-                )
+                    username, channel)
                 await self.db.execute(
                     """
                     INSERT INTO twitch.points (points, user_id)
@@ -132,8 +126,7 @@ class Bot(commands.Bot):
                         FROM twitch.users
                         WHERE username = $1 and channel = $2 ))
                     """,
-                    username, channel
-                )
+                    username, channel)
 
     async def event_message(self, message):
         'Lets try to store all messages'
@@ -142,8 +135,7 @@ class Bot(commands.Bot):
             INSERT INTO twitch.messagelog (timestamp, channel, author, message)
             VALUES ($1, $2, $3, $4)
             """,
-            datetime.datetime.now(), message.channel.name, message.author.name, message.content
-        )
+            datetime.datetime.now(), message.channel.name, message.author.name, message.content)
 
         'Always run on all messages'
         if message.author.name.lower() == self.nick.lower():
@@ -168,6 +160,16 @@ class Bot(commands.Bot):
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
+    
+    # async def rolling_message(self):
+    #     if self.
+        
+    #     while True:
+    #         self.db.fetchval
+
+    @commands.command(aliases=('rolling_update',))
+    async def update_rolling_message(self, ctx, message:str):
+        print('hi')
 
     @commands.command(name = 'test')
     async def test(self, ctx):
