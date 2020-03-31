@@ -7,14 +7,14 @@ import random
 class Dice:
     def __init__(self, bot):
         self.bot = bot
-    @commands.command(alias=('hide',))
+    @commands.command(aliases=('hide',))
     async def stealth_check(self, ctx):
         result =  await self.rolling_dice(1, 20)
         if result > 15:
             await ctx.send(f'{ctx.author.name} rolled {result} and succeeded hiding.')
         else:
             await ctx.send(f'{ctx.author.name} rolled {result} and failed at hiding.')
-    @commands.command(alias=('roll',)
+    @commands.command(aliases=('roll',))
     async def roll_command(self, ctx, roll : str):
         """
         ! = advantage, * = disadvantage, second d = drop number of dice
