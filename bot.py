@@ -12,16 +12,16 @@ from utility import logging
 
 
 class Bot(commands.Bot):
-    def __init__(self, loop = None, **kwargs):
+    def __init__(self, loop=None, **kwargs):
 
         loop = loop or asyncio.get_event_loop()
 
-        super().__init__(loop = loop, **kwargs)
+        super().__init__(loop=loop, **kwargs)
 
         for file in Path('cogs').iterdir():
             if file.with_suffix('.py').is_file():
                 self.load_module('cogs.' + file.name[:-3])
-        self.aiohttp_session = None        
+        self.aiohttp_session = None
         self.db = self.database = self.database_connection_pool = None
         self.connected_to_database = asyncio.Event()
         self.connected_to_database.set()
@@ -39,7 +39,7 @@ class Bot(commands.Bot):
 
         else:
             await self.connected_to_database.wait()
-    
+
     async def initialize_database(self):
         await self.connect_to_database()
         await self.db.execute("CREATE SCHEMA IF NOT EXISTS twitch")
@@ -92,30 +92,30 @@ class Bot(commands.Bot):
     async def event_ready(self):
         'Called once when bot enters the chat.'
         print(f"{self.nick} is here!")
-        #await self.rolling_message()
+        # await self.rolling_message()
         if not self.aiohttp_session:
             self.aiohttp_session = aiohttp.ClientSession(loop=self.loop)
 
     async def event_join(self, user):
         'Adds all users to the database and adds starting points'
-        #Todo check on how well this scales?
+        # Todo check on how well this scales?
         print(type(user))
         username = str(user.name).rstrip()
         channel = str(user.channel)
 
         if username != self.nick:
             already_exists = await self.db.fetchval(
-            """
+                """
             SELECT user_id FROM twitch.users
             WHERE username = $1 AND channel = $2
-            """,
-            username, channel)
+                """,
+                username, channel)
             if not already_exists:
                 await self.db.execute(
                     """
                     INSERT INTO twitch.users (username, channel)
                     VALUES ($1, $2)
-                    ON CONFLICT (username, channel) 
+                    ON CONFLICT (username, channel)
                     DO NOTHING
                     """,
                     username, channel)
@@ -123,7 +123,7 @@ class Bot(commands.Bot):
                     """
                     INSERT INTO twitch.points (points, user_id)
                     VALUES (1000, (
-                        SELECT user_id 
+                        SELECT user_id
                         FROM twitch.users
                         WHERE username = $1 and channel = $2 ))
                     """,
@@ -141,8 +141,8 @@ class Bot(commands.Bot):
         'Always run on all messages'
         if message.author.name.lower() == self.nick.lower():
             return
-        #Potentially allowing for different context or addoing onto context for later work
-        ctx = await self.get_context(message, cls = twitchio.Context)
+        # Potentially allowing for different context or addoing onto context for later work
+        ctx = await self.get_context(message, cls=twitchio.Context)
 
         await self.handle_commands(message, ctx=ctx)
 
@@ -151,7 +151,7 @@ class Bot(commands.Bot):
     
     async def event_command_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):
-            await ctx.send(str(error).replace('`', "'").replace('<class' , '').replace('>', ''))
+            await ctx.send(str(error).replace('`', "'").replace('<class', '').replace('>', ''))
 
         elif isinstance(error, commands.CommandNotFound):
             await ctx.send(f"That isn't a valid command @{ctx.author.name}")
@@ -169,15 +169,16 @@ class Bot(commands.Bot):
     #         self.db.fetchval
 
     @commands.command(aliases=('rolling_update',))
-    async def update_rolling_message(self, ctx, message:str):
+    async def update_rolling_message(self, ctx, message: str):
         print('hi')
 
-    @commands.command(name = 'test')
+    @commands.command(name='test')
     async def test(self, ctx):
         print('Wow this worked?')
+
 
 if __name__ == '__main__':
 
     params = toml.load('config.toml')
-    bot = Bot(prefix = '!', **params['botconf'])
+    bot = Bot(prefix='!', **params['botconf'])
     bot.run()
