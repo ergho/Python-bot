@@ -1,7 +1,8 @@
+import random
+import re
+
 from twitchio.ext import commands
 
-import re
-import random
 
 @commands.cog()
 class Dice:

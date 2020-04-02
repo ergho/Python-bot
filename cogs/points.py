@@ -1,5 +1,6 @@
 from twitchio.ext import commands
 
+
 @commands.cog()
 class Points:
     def __init__(self, bot):

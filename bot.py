@@ -1,11 +1,12 @@
 import asyncio
-import asyncpg
-import aiohttp
 import datetime
-import twitchio
-import toml
-
 from pathlib import Path
+
+import aiohttp
+
+import asyncpg
+import toml
+import twitchio
 from twitchio.ext import commands
 from utility import logging
 

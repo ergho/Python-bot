@@ -1,6 +1,6 @@
-from pathlib import Path
 import logging
 import logging.handlers
+from pathlib import Path
 
 Path('logs/twitchio').mkdir(parents=True, exist_ok=True)
 Path('logs/raw_data').mkdir(parents=True, exist_ok=True)
