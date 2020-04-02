@@ -148,23 +148,23 @@ class Bot(commands.Bot):
 
         if 'hello' in ctx.content.lower():
             await ctx.channel.send(f"Hi, @{ctx.author.name}!")
-    
+
     async def event_command_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):
             await ctx.send(str(error).replace('`', "'").replace('<class', '').replace('>', ''))
 
         elif isinstance(error, commands.CommandNotFound):
             await ctx.send(f"That isn't a valid command @{ctx.author.name}")
-        
+
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f'Your command is missing an argument @{ctx.author.name}')
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
-    
+
     # async def rolling_message(self):
     #     if self.
-        
+
     #     while True:
     #         self.db.fetchval
 
