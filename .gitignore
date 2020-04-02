@@ -3,3 +3,4 @@
 *.toml
 tzshizzle.py
 Discord/bot.py
+.*
