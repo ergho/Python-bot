@@ -79,13 +79,6 @@ class Moderation:
         else:
             await ctx.send('Mod only command!')
 
-    @commands.command(aliases=('unban',))
-    async def unban_user(self, ctx, username: str, reason: str = None):
-        if ctx.author.is_mod == 1:
-            pass
-        else:
-            await ctx.send('Mod only command!')
-
     async def permit_users(self, username: str, mode: str):
         if 'permit' == mode:
             self.allowed_users.append(username)

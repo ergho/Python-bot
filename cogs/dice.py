@@ -71,7 +71,7 @@ class Dice:
 
     async def valid(self, roll: str) -> int:
         allowed_chars = set('0123456789+-d!*')
-        if set(roll).issubset(allowed_chars) and re.match('^([!\*])?(\d{1,2})([d]\d{1,3})?(?:[+d-](?:\d{1,3}))$', roll):
+        if set(roll).issubset(allowed_chars) and re.match(r'^([!\*])?(\d{1,2})([d]\d{1,3})?(?:[+d-](?:\d{1,3}))$', roll):
             return 1  # valid input
         else:
             return 0  # invalid input
@@ -101,7 +101,7 @@ class Dice:
         value[4] = int(drop)
         return value
 
-    async def split(self, flist: list, roll: str) -> list:
+    async def split(self, flist: list, roll: str) -> tuple:
         parameters = [0, 0, 0, 0, 0]
         for func in flist:
             try:
@@ -109,10 +109,10 @@ class Dice:
             except Exception as e:
                 print(e)
                 continue
-        return parameters
+        return (*parameters,)
 
-    async def unpack(self, s) -> list:
-        return list(map(int, s))
+    async def unpack(self, result) -> list:
+        return list(map(int, result))
 
     async def rolling_dice(self, dice: int, size: int) -> list:
         result = []
