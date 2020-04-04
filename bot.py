@@ -61,6 +61,7 @@ class Bot(commands.Bot):
                 unique              (channel, username)
             )
             """)
+            #keep here or in points cog?
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.points (
@@ -78,6 +79,17 @@ class Bot(commands.Bot):
                 PRIMARY KEY         (channel, command)
             )
             """)
+            # should i make this part of main bot or a new cog?
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS twitch.quotes (
+                channel             TEXT NOT NULL,
+                quote               TEXT NOT NULL,
+                quote_id            INT GENERATED ALWAYS AS IDENTITY,
+                PRIMARY KEY         (channel, quote)
+            )
+            """)
+        #should i keep this here on in moderation cog?
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.banlist (
@@ -92,14 +104,14 @@ class Bot(commands.Bot):
     async def event_ready(self):
         'Called once when bot enters the chat.'
         print(f"{self.nick} is here!")
-        # await self.rolling_message()
+        # await self.set_rolling_message()
         if not self.aiohttp_session:
             self.aiohttp_session = aiohttp.ClientSession(loop=self.loop)
 
     async def event_join(self, user):
         'Adds all users to the database and adds starting points'
         # Todo check on how well this scales?
-        print(type(user))
+        #print(type(user))
         username = str(user.name).rstrip()
         channel = str(user.channel)
 
@@ -142,6 +154,7 @@ class Bot(commands.Bot):
         if message.author.name.lower() == self.nick.lower():
             return
         # Potentially allowing for different context or addoing onto context for later work
+        # 
         ctx = await self.get_context(message, cls=twitchio.Context)
 
         await self.handle_commands(message, ctx=ctx)
@@ -162,19 +175,15 @@ class Bot(commands.Bot):
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
 
-    # async def rolling_message(self):
-    #     if self.
 
-    #     while True:
-    #         self.db.fetchval
-
-    @commands.command(aliases=('rolling_update',))
-    async def update_rolling_message(self, ctx, message: str):
-        print('hi')
+    @commands.command(aliases=('quote',))
+    async def fetch_quote(self, ctx, number: int):
+        #quotes = self.db.fetch
+        print('lol')
 
     @commands.command(name='test')
     async def test(self, ctx):
-        print('Wow this worked?')
+        await ctx.send('Test Command')
 
 
 if __name__ == '__main__':

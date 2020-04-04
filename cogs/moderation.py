@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from twitchio.ext import commands
 
@@ -12,9 +13,10 @@ class Moderation:
         self.bot = bot
         self.allowed_users = []
 
-    async def event_message(self, ctx):
-        print('hi')
 
+    async def event_message(self, ctx):
+        pass
+        
     @commands.command(aliases=('permit',))
     async def permit_link(self, ctx, username: str, duration: int = 60):
         if ctx.author.is_mod == 1:
@@ -25,7 +27,7 @@ class Moderation:
                 """,
                 username.lower(), ctx.channel.name)
             if username != eval_username:
-                await ctx.send(f"@{ctx.channel.author}, check the spelling of {username}")
+                await ctx.send(f'@{ctx.channel.author}, check the spelling of {username}')
                 return
             await self.permit_users(username, 'permit')
             await self.bot.asyncio.sleep(duration)

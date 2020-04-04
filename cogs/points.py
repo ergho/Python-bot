@@ -56,11 +56,21 @@ class Points:
             username, ctx.channel.name
         )
         return points
+    #Only really for test to return all values
+    @commands.command(name='getall')
+    async def get_all_values(self, ctx):
+        print('why hello there silly face')
+        points = await self.bot.db.fetch(
+            """
+            SELECT user_id, points
+            FROM twitch.points
+            """
+        )
+        print(points)
+        print(type(points))
 
     async def modify_points(self, ctx, amount: int, username: str, modify: str):
-
         points = await self.get_points(ctx, username)
-
         if modify.lower() == 'add':
             points = points + amount
         elif modify.lower == 'sub':
