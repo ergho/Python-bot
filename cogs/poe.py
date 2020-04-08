@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import random
 
 from twitchio.ext import commands
 
@@ -10,9 +11,23 @@ class Pathofexile:
         self.bot = bot
 
     async def event_ready(self):
-        print('poe.cog loaded')
+        await self.initialize_database_poe()
+
+    async def initialize_database_poe(self):
+
         # might move this elsewhere, or change table structure
-        await self.bot.db.execute("CREATE SCHEMA IF NOT EXISTS poe")
+        await self.bot.db.execute(
+            """
+            CREATE SCHEMA IF NOT EXISTS poe
+            """
+            )
+        
+        await self.bot.db.execute(
+            """
+            CREATE EXTENSION IF NOT EXISTS pg_trgm
+            WITH SCHEMA poe
+            """
+            )
 
         await self.bot.db.execute(
                 """
@@ -21,24 +36,104 @@ class Pathofexile:
                 league          TEXT,
                 name            TEXT,
                 base_type       TEXT,
+                details_id      TEXT,
                 chaosvalue      INT
                 )
                 """
             )
-        # await self.get_cur([4,5])
+        await self.get_cur([4,5])
+
+    async def get_leagues(self, league_ids: list):
+        """
+        param: league_ids: takes a list of 1 or more numbers
+        0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
+        """
+        url = 'https://api.pathofexile.com/leagues'
+        async with self.bot.aiohttp_session.get(url) as resp:
+            league = await resp.json()
+            return [league[x]['id'] for x in league_ids]
+
+    async def get_currency_from_api(self, league_ids: list, base: str, types: list, price_types: str, name_types: str):
+        url = f'https://poe.ninja/api/data/{base}?'
+        for ids in league_ids:
+            for item in types:
+                params = {'league': ids, 'type': item}
+                api_response = await self.get_json(url, **params)
+                if api_response == 0:
+                    print("There's been an error")
+                    continue
+                for entry in api_response['lines']:
+                    if 'baseType' in entry:
+                        if entry['baseType']:
+                            base_type = entry['baseType']
+                    else:
+                        base_type = 'None'                           
+                    if entry[price_types] > 50:
+                        await self.bot.db.execute(
+                            """
+                            INSERT INTO poe.currency (timestamp, league, name, base_type, details_id, chaosvalue)
+                            VALUES ($1, $2, $3, $4, $5, $6)
+                            """,
+                            datetime.datetime.now(), ids, entry[name_types], base_type, entry['detailsId'], entry[price_types]
+                            )
+    async def get_json(self, url: str, amount_of_tries: int=5, **parameters:dict):
+        api_response = None
+        tries = 0
+        delay = 0
+        if len(parameters) == 0:
+            parameters = None
+        while api_response is None and tries < amount_of_tries:
+            try:
+                async with self.bot.aiohttp_session.get(url, params=parameters) as resp:
+                    resp.raise_for_status()
+                    api_response = await resp.json()
+            except Exception as e:
+                tries += 1
+                delay = 2 ** tries + 1
+                await asyncio.sleep(delay)
+        if api_response is None:
+            return 0
+        return api_response
+    
+    async def get_cur(self, league_ids: list):
+        """
+        param: league_ids:: takes a list of numbers
+        0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
+        """
+        league = await self.get_leagues(league_ids)
+        currency_types = ['Currency', 'Fragment']
+        item_types = ['Oil', 'Incubator', 'Scarab','Fossil', 'Resonator',
+                      'Essence', 'DivinationCard', 'Prophecy', 'BaseType',
+                      'UniqueMap', 'Map', 'UniqueJewel', 'UniqueFlask',
+                      'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory']
+        price_types = ['chaosEquivalent', 'chaosValue']
+        base = ['currencyoverview', 'itemoverview']
+        name_types = ['currencyTypeName', 'name']
+        while True:
+            delay = random.randrange(3500, 3800)
+
+            await self.get_currency_from_api(league, base[0], currency_types, price_types[0], name_types[0])
+            await self.get_currency_from_api(league, base[1], item_types, price_types[1], name_types[1])
+
+            await asyncio.sleep(delay)
 
     @commands.command(aliases=('price', 'cprice'))
-    async def get_currency_price(self, ctx, name: str, league: str = 'Delirium'):
+    async def get_currency_price(self, ctx, item_name: str, league: str = 'Delirium'):
         league = league.lstrip()
-        print(name, league)
-        value = list(await self.bot.db.fetchrow(
-            """
-            SELECT name, chaosvalue  FROM poe.currency
-            WHERE lower(league) = $1 and lower(name) = $2
-            order by timestamp desc
-            """,
-            league.lower(), name.lower()
-        ))
+        print(item_name, league)
+        value = await self.bot.db.fetchrow(
+        """
+        SELECT name, chaosvalue, base_type, poe.similarity(details_id, $1)  FROM poe.currency
+        WHERE lower(league) = $2
+        order by similarity desc, timestamp desc
+        """,
+        item_name, league.lower()
+        )
+        await ctx.send(f'@{ctx.author.name}, {value[0]} current value in chaos {value[1]}, placeholder for trade site link of item.')
+        print(value)
+        for i in value:
+            print(i)
+        
         # await self.
         # url = 'Placeholder'
         # Todo add a pathofexiletrade link for the itemm, ran through tinyurl
@@ -46,79 +141,50 @@ class Pathofexile:
         # ctx.send(f'{detailed_name} current average value is {value}
         # Chaos Orbs. Here is a link to pathofexiletrade shortened
         # by tinyurl {url}')
+        # for i in league:
+        #     for x in base:
+        #         for y in types:
+        #             # stops inherently faulty requests, before sending them
+        #             if x == base[0] and y != types[0] and y != types[1]:
+        #                 continue
+        #             elif x == base[1] and y == types[0] or x == base[1] and y == types[1]:
+        #                 continue
 
-    async def get_leagues(self, league_ids: list):
-        """
-        param: league_ids:: takes a list of 1 or more numbers
-        0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
-        """
-        url = 'http://api.pathofexile.com/leagues'
-        async with self.bot.aiohttp_session.get(url) as resp:
-            league = await resp.json()
-            # Returns based on ids and list comprehension
-            return [league[x]['id'] for x in league_ids]
-    # async def get_api_data(self, league:list, overview:str, types:list):
-        # league = [4,5]
-        # overview = 'currencyoverview'
-        # types = []
-        # url = f'https://poe.ninja/api/data/{overview}?'
-        # params = {'league':, 'type': }
-        # with self.bot.aiohttp_session(url, params=params) as resp:
+        #             url = f'https://poe.ninja/api/data/{x}?'
+        #             params = {'league': i, 'type': y}
+        #             async with self.bot.aiohttp_session.get(url, params=params) as resp:
+        #                 print(resp.status, i, x, y)
+        #                 assert resp.status == 200
+        #                 # todo add loggging of errors instead of just skipping over?
+        #                 # continue
+        #                 currencies = await resp.json()
+        #                 for t in currencies['lines']:
+        #                     base_type = 'None'
+        #                     if x == base[0]:
+        #                         if t['chaosEquivalent'] > 50:
+        #                             await self.bot.db.execute(
+        #                                 """
+        #                                 INSERT INTO poe.currency (timestamp, league, name, base_type, chaosvalue)
+        #                                 VALUES ($1, $2, $3, $4, $5)
+        #                                 """,
+        #                                 datetime.datetime.now(), i, t['currencyTypeName'], base_type, t['chaosEquivalent']
+        #                             )
+        #                     elif x == base[1]:
+        #                         if t['chaosValue'] > 50:
 
-    async def get_cur(self, league_ids: list):
-        """
-        param: league_ids:: takes a list of numbers
-        0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
-        """
-        league = await self.get_leagues(league_ids)
-        types = ['Currency', 'Fragment', 'Oil', 'Incubator', 'Scarab',
-                 'Fossil', 'Resonator', 'Essence', 'DivinationCard',
-                 'Prophecy', 'BaseType', 'UniqueMap', 'Map', 'UniqueJewel',
-                 'UniqueFlask', 'UniqueWeapon', 'UniqueArmour',
-                 'UniqueAccessory']
-        base = ['currencyoverview', 'itemoverview']
-        while True:
-            for i in league:
-                for x in base:
-                    for y in types:
-                        # stops inherently faulty requests, before sending them
-                        if x == base[0] and y != types[0] and y != types[1]:
-                            continue
-                        elif x == base[1] and y == types[0] or x == base[1] and y == types[1]:
-                            continue
+        #                             # if t['baseType']:
+        #                             #    base_type = t['baseType']
+        #                             await self.bot.db.execute(
+        #                                 """
+        #                                 INSERT INTO poe.currency (timestamp, league, name, base_type, chaosvalue)
+        #                                 VALUES ($1, $2, $3, $4, $5)
+        #                                 """,
+        #                                 datetime.datetime.now(), i, t['name'], t['baseType'], t['chaosValue']
+        #                             )
 
-                        url = f'https://poe.ninja/api/data/{x}?'
-                        params = {'league': i, 'type': y}
-                        async with self.bot.aiohttp_session.get(url, params=params) as resp:
-                            print(resp.status, i, x, y)
-                            assert resp.status == 200
-                            # todo add loggging of errors instead of just skipping over?
-                            # continue
-                            currencies = await resp.json()
-                            for t in currencies['lines']:
-                                base_type = 'None'
-                                if x == base[0]:
-                                    if t['chaosEquivalent'] > 50:
-                                        await self.bot.db.execute(
-                                            """
-                                            INSERT INTO poe.currency (timestamp, league, name, base_type, chaosvalue)
-                                            VALUES ($1, $2, $3, $4, $5)
-                                            """,
-                                            datetime.datetime.now(), i, t['currencyTypeName'], base_type, t['chaosEquivalent']
-                                        )
-                                elif x == base[1]:
-                                    if t['chaosValue'] > 50:
 
-                                        # if t['baseType']:
-                                        #    base_type = t['baseType']
-                                        await self.bot.db.execute(
-                                            """
-                                            INSERT INTO poe.currency (timestamp, league, name, base_type, chaosvalue)
-                                            VALUES ($1, $2, $3, $4, $5)
-                                            """,
-                                            datetime.datetime.now(), i, t['name'], t['baseType'], t['chaosValue']
-                                        )
-            await asyncio.sleep(7200)
+
+
 
     # async def trade_url(self, name:str, base:str = None):
     #    build query here or take it as a parameter?
@@ -129,162 +195,3 @@ class Pathofexile:
 # #To do add in aiohttp for using poe.ninja and pathofexile api for grabbing currency information
 # #then storing the data somehow, psql? or keyvalue? or other ideas
 
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.fragment
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.deliriumorb
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.watchstone
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.oil
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.incubator
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.scarab
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.fossil
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.resonator
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.essence
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         #might add stack size to divinationcard table
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.divinationcard
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.prophecy
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         #Potentially
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.skillgem
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         #Low confidence data, harder to evaluate
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.enchant
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.uniquemap
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.map
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.uniquejewel
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.uniqueflask
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.uniqueweapon
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.uniquearmor
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.uniuqacc
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.beast
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )
-#         await self.bot.db.execute(
-#             """CREATE TABLE IF NOT EXISTS poe.vial
-#             timestamp       TIMESTAMPZ DEFAULT NOW(),
-#             name            TEXT PRIMARY KEY,
-#             chaosvalue      INT
-#             """
-#         )

@@ -21,12 +21,12 @@ asyncio_logger_handler = logging.handlers.TimedRotatingFileHandler(filename='log
 asyncio_logger_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s %(name)s: %(message)s'))
 asyncio_logger.addHandler(asyncio_logger_handler)
 
-aiohttp_client_logger = logging.getLogger('aiohttp.client')
-aiohttp_client_logger.setLevel(logging.DEBUG)
-aiohttp_client_logger_handler = logging.handlers.TimedRotatingFileHandler(filename='logs/aiohttp/client.log',
-                                                                          when='midnight', backupCount=500000, encoding='UTF-8')
-aiohttp_client_logger_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s %(name)s: %(message)s'))
-aiohttp_client_logger.addHandler(aiohttp_client_logger_handler)
+# aiohttp_client_logger = logging.getLogger('aiohttp')
+# aiohttp_client_logger.setLevel(logging.DEBUG)
+# aiohttp_client_logger_handler = logging.handlers.TimedRotatingFileHandler(filename='logs/aiohttp/client.log',
+#                                                                           when='midnight', backupCount=500000, encoding='UTF-8')
+# aiohttp_client_logger_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s %(name)s: %(message)s'))
+# aiohttp_client_logger.addHandler(aiohttp_client_logger_handler)
 
 raw_data_logger = logging.getLogger('raw data')
 raw_data_logger.setLevel(logging.DEBUG)
