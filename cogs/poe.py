@@ -52,7 +52,7 @@ class Pathofexile:
         async with self.bot.aiohttp_session.get(url) as resp:
             league = await resp.json()
             return [league[x]['id'] for x in league_ids]
-
+## todo double check bugfix to see if the error to database is gone weird base types on wrong items!
     async def get_currency_from_api(self, league_ids: list, base: str, types: list, price_types: str, name_types: str):
         url = f'https://poe.ninja/api/data/{base}?'
         for ids in league_ids:
@@ -63,11 +63,12 @@ class Pathofexile:
                     print("There's been an error")
                     continue
                 for entry in api_response['lines']:
+                    base_type = 'None'
                     if 'baseType' in entry:
                         if entry['baseType']:
                             base_type = entry['baseType']
-                    else:
-                        base_type = 'None'                           
+                    # else:
+                    #      base_type = 'None'                          
                     if entry[price_types] > 50:
                         await self.bot.db.execute(
                             """
@@ -120,19 +121,30 @@ class Pathofexile:
     @commands.command(aliases=('price', 'cprice'))
     async def get_currency_price(self, ctx, item_name: str, league: str = 'Delirium'):
         league = league.lstrip()
-        print(item_name, league)
-        value = await self.bot.db.fetchrow(
+        check_league = await self.get_leagues([4,5])
+        if league not in check_league:
+            await ctx.send(f'@{ctx.author.name} please check your request and make sure you are using one of the temporary leagues.')
+            return
+
+        value = dict(await self.bot.db.fetchrow(
         """
         SELECT name, chaosvalue, base_type, poe.similarity(details_id, $1)  FROM poe.currency
         WHERE lower(league) = $2
         order by similarity desc, timestamp desc
         """,
         item_name, league.lower()
-        )
-        await ctx.send(f'@{ctx.author.name}, {value[0]} current value in chaos {value[1]}, placeholder for trade site link of item.')
+        ))
+        # url = 
+        # query = 
+        # await get_json(url, **parameters)
+        if value.get('similarity') < 0.3:
+            await ctx.send(f'@{ctx.author.name}, There is no item matching closely enough with your request with an estimated value of 50 chaos above.')
+            return
+        print(type(value))
         print(value)
-        for i in value:
-            print(i)
+    
+        await ctx.send(f'@{ctx.author.name}, {value.get("name")} current value in chaos {value.get("chaosvalue")}, placeholder for trade site link of item.')
+        
         
         # await self.
         # url = 'Placeholder'
