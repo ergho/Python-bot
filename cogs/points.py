@@ -8,17 +8,18 @@ class Points:
     # todo, maybe add something to do with the points?
     # todo, move the points adding and create database here rather than main cog?
     @commands.command(aliases=('points',))
-    async def check_points(self, ctx, username: str = None):
+    async def check_points(self, ctx, username: str = None) -> None:
         if username is None:
             username = ctx.author.name
-        points = await self.get_points(ctx, username)
+        points: int = await self.get_points(ctx, username)
+
         if points:
             await ctx.send(f'{username} have {points} points @{ctx.author.name}')
         else:
             await ctx.send(f'{username} have yet to get any points @{ctx.author.name}')
 
     @commands.command(aliases=('a_points', 'adding_points'))
-    async def add_points(self, ctx, amount: int, username: str):
+    async def add_points(self, ctx, amount: int, username: str) -> None:
         if ctx.author.is_mod == 1:
             await self.modify_points(ctx, amount, username, 'add')
             await ctx.send(f'{username} now have {amount} points.')
@@ -26,25 +27,28 @@ class Points:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('add_all',))
-    async def bulk_add_points(self, ctx, amount: int):
+    async def bulk_add_points(self, ctx, amount: int) -> None:
         if ctx.author.is_mod == 1:
             users = await self.bot.get_chatters(ctx.channel.name)
-            for name in users.all:
-                await self.modify_points(ctx, amount, name, 'add')
+            users.all: list[str]
+            for username in users.all: # type: str
+                if username == self.bot.nick:
+                    continue
+                await self.modify_points(ctx, amount, username, 'add')
             await ctx.send(f'Added {amount} points to everyone in chat !')
         else:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('r_points',))
-    async def remove_points(self, ctx, amount: int, username: str):
+    async def remove_points(self, ctx, amount: int, username: str) -> None:
         if ctx.author.is_mod == 1:
             await self.modify_points(ctx, amount, username, 'sub')
             await ctx.send(f'{username}, now have {amount} points @{ctx.author.name}')
 
-    async def get_points(self, ctx, username: str):
+    async def get_points(self, ctx, username: str) -> int:
         # To do consider using joins rather than subquery,
-        # might lower readability for little to no  benefit?
-        points = await self.bot.db.fetchval(
+        # might lower readability for little to no benefit?
+        points: int = await self.bot.db.fetchval(
             """
             SELECT points
             FROM twitch.points
@@ -56,21 +60,19 @@ class Points:
             username, ctx.channel.name
         )
         return points
-    #Only really for test to return all values
+    #Only really for test to print all values
     @commands.command(name='getall')
-    async def get_all_values(self, ctx):
-        print('why hello there silly face')
-        points = await self.bot.db.fetch(
+    async def get_all_values(self, ctx) -> None:
+        points: dict[int, int] = dict(await self.bot.db.fetch(
             """
             SELECT user_id, points
             FROM twitch.points
             """
-        )
+        ))
         print(points)
-        print(type(points))
 
-    async def modify_points(self, ctx, amount: int, username: str, modify: str):
-        points = await self.get_points(ctx, username)
+    async def modify_points(self, ctx, amount: int, username: str, modify: str) -> None:
+        points: int = await self.get_points(ctx, username)
         if modify.lower() == 'add':
             points = points + amount
         elif modify.lower == 'sub':
@@ -87,5 +89,5 @@ class Points:
                 SELECT user_id FROM twitch.users WHERE username = $2 and channel = $3
             )
             """,
-            amount, username, ctx.channel.name
+            points, username, ctx.channel.name
         )
