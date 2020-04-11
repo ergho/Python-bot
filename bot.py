@@ -110,7 +110,7 @@ class Bot(commands.Bot):
 
     async def event_join(self, user):
         'Adds all users to the database and adds starting points'
-        # Todo check on how well this scales?
+        # Todo check on how well this scales? should i keep the points adding here?
         #print(type(user))
         username = str(user.name).rstrip()
         channel = str(user.channel)
@@ -174,12 +174,6 @@ class Bot(commands.Bot):
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
-
-
-    @commands.command(aliases=('quote',))
-    async def fetch_quote(self, ctx, number: int):
-        #quotes = self.db.fetch
-        print('lol')
 
     @commands.command(name='test')
     async def test(self, ctx):
