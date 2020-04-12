@@ -13,14 +13,10 @@ class Moderation:
         self.bot = bot
         self.allowed_users = []
 
-
-    async def event_message(self, ctx):
-        pass
-        
     @commands.command(aliases=('permit',))
-    async def permit_link(self, ctx, username: str, duration: int = 60):
+    async def permit_link(self, ctx, username: str, duration: int = 60) -> None:
         if ctx.author.is_mod == 1:
-            eval_username = await self.bot.db.fetchval(
+            eval_username: str = await self.bot.db.fetchval(
                 """
                 SELECT username FROM twitch.users
                 WHERE username = $1 AND channel = $2)
@@ -36,15 +32,14 @@ class Moderation:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('timeout',))
-    async def timeout_user(self, ctx, username: str, duration: int = 600, reason: str = None):
+    async def timeout_user(self, ctx, username: str, duration: int = 600, reason: str = None) -> None:
         if ctx.author.is_mod == 1:
-            # to do add user to banlist in database with reason and timeout user for duration.
             await ctx.channel.timeout(username, duration, reason)
         else:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('ban',))
-    async def ban_user(self, ctx, username: str, reason: str = None, duration: str = 'Permanent'):
+    async def ban_user(self, ctx, username: str, reason: str = None, duration: str = 'Permanent') -> None:
         if ctx.author.is_mod == 1:
             await self.bot.db.execute(
                 """
@@ -53,20 +48,19 @@ class Moderation:
                 """,
                 datetime.datetime.now(), ctx.channel.name, username, reason, duration
             )
-            # to do add user to the banlist in database with reason why and ban user in chat and duration(permanent)
             await ctx.channel.ban(username, reason)
         else:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('unban',))
-    async def unban_user(self, ctx, username: str, reason: str = None):
+    async def unban_user(self, ctx, username: str, reason: str = None) -> None:
         if ctx.author.is_mod == 1:
             await ctx.channel.unban(username)
         else:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('slow', 'slowmode'))
-    async def slow_mode(self, ctx):
+    async def slow_mode(self, ctx) -> None:
         if ctx.author.is_mod == 1:
             await ctx.channel.slow()
             await ctx.send('Slow mode is now active')
@@ -74,14 +68,14 @@ class Moderation:
             await ctx.send('Mod only command!')
 
     @commands.command(aliases=('slow_off', 'slowoff'))
-    async def slow_mode_off(self, ctx):
+    async def slow_mode_off(self, ctx) -> None:
         if ctx.author.is_mod == 1:
             await ctx.channek.unslow()
             await ctx.send('Slow mode is now off')
         else:
             await ctx.send('Mod only command!')
 
-    async def permit_users(self, username: str, mode: str):
+    async def permit_users(self, username: str, mode: str) -> None:
         if 'permit' == mode:
             self.allowed_users.append(username)
         elif 'remove' == mode:
