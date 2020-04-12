@@ -3,6 +3,9 @@ import datetime
 import random
 
 from twitchio.ext import commands
+from typing import Dict, List, Union, Optional
+# required for python versions 3.7 as TypedDict isn't in typing until 3.8
+from typing_extensions import TypedDict 
 
 
 @commands.cog()
@@ -43,7 +46,7 @@ class Pathofexile:
             )
         await self.get_cur([4,5])
 
-    async def get_leagues(self, league_ids: list):
+    async def get_leagues(self, league_ids: list) -> list:
         """
         param: league_ids: takes a list of 1 or more numbers
         0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
@@ -52,18 +55,18 @@ class Pathofexile:
         async with self.bot.aiohttp_session.get(url) as resp:
             league: dict = await resp.json()
             return [league[x]['id'] for x in league_ids]
-## todo double check bugfix to see if the error to database is gone weird base types on wrong items!
+
     async def get_currency_from_api(self, league_ids: list, base: str, types: list, price_types: str, name_types: str):
         url: str = f'https://poe.ninja/api/data/{base}?'
-        for ids in league_ids: # type: int
+        for index in league_ids: # type: str
             for item in types: # type: str
-                params: dict = {'league': ids, 'type': item}
-                api_response: dict = await self.get_json(url, **params)
+                params: dict = {'league': index, 'type': item}
+                api_response: Optional[dict] = await self.get_json(url, **params)
                 if api_response is None:
                     print("There's been an error")
                     continue
                 for entry in api_response['lines']: # type: dict
-                    base_type = 'None'
+                    base_type: str = 'None'
                     if 'baseType' in entry:
                         if entry['baseType']:
                             base_type = entry['baseType']
@@ -73,13 +76,11 @@ class Pathofexile:
                             INSERT INTO poe.currency (timestamp, league, name, base_type, details_id, chaosvalue)
                             VALUES ($1, $2, $3, $4, $5, $6)
                             """,
-                            datetime.datetime.now(), ids, entry[name_types], base_type, entry['detailsId'], entry[price_types]
+                            datetime.datetime.now(), index, entry[name_types], base_type, entry['detailsId'], entry[price_types]
                             )
-    async def get_json(self, url: str, amount_of_tries: int=5, **parameters:dict) -> dict:
-        api_response: dict = None
+    async def get_json(self, url: str, amount_of_tries: int=5, **parameters) -> Optional[dict]:
         tries: int = 0
-        if len(parameters) == 0:
-            parameters = None
+        api_response: Optional[dict] = None
         while api_response is None and tries < amount_of_tries:
             try:
                 async with self.bot.aiohttp_session.get(url, params=parameters) as resp:
@@ -115,31 +116,37 @@ class Pathofexile:
 
     @commands.command(aliases=('price', 'cprice'))
     async def get_currency_price(self, ctx, item_name: str, league: str = 'Delirium') -> None:
-        league: str = league.strip()
+        league = league.strip()
         check_league: List[str] = await self.get_leagues([4,5])
         if league not in check_league:
             await ctx.send(f'@{ctx.author.name} please check your request and make sure you are using one of the temporary leagues.')
             return
-
-        value: dict = dict(await self.bot.db.fetchrow(
+        value: currency_value = await self.bot.db.fetchrow(
         """
-        SELECT name, chaosvalue, base_type, poe.similarity(details_id, $1)  FROM poe.currency
-        WHERE lower(league) = $2
+        SELECT name, chaosvalue, base_type, poe.similarity(details_id, $1) FROM poe.currency
+        WHERE lower(league) = $2 and timestamp >= ( now() - INTERVAL '12 hours')
         order by similarity desc, timestamp desc
         """,
         item_name, league.lower()
-        ))
+        )
+
         # url = 
         # query = 
         # await get_json(url, **parameters)
-        if value.get('similarity') < 0.3:
+        if value['similarity'] < 0.3:
             await ctx.send(f'@{ctx.author.name}, There is no item matching closely enough with your request and have an estimated value of 50 chaos or above.')
             return
     
-        await ctx.send(f'@{ctx.author.name}, {value.get("name")}: {value.get("chaosvalue")} Chaos Orbs, placeholder for trade site link of item.')
-        
-        
-        # await self.
+        await ctx.send(f'@{ctx.author.name}, {value["name"]}: {value["chaosvalue"]} Chaos Orbs, placeholder for trade site link of item.')
+
+
+class currency_value(TypedDict):
+    name: str
+    chaosvalue: int
+    base_type: str
+    similarity: float
+    
+                # await self.
         # url = 'Placeholder'
         # Todo add a pathofexiletrade link for the itemm, ran through tinyurl
         # or equiv to save space on link.
