@@ -75,9 +75,9 @@ class Points:
 
     async def modify_points(self, ctx, amount: int, username: str, modify: str) -> None:
         points: int = await self.get_points(ctx, username)
-        if modify.lower() == 'add':
+        if modify.casefold() == 'add':
             points = points + amount
-        elif modify.lower == 'sub':
+        elif modify.casefold() == 'sub':
             if amount > points:
                 points = 0
             else:
