@@ -12,9 +12,9 @@ from typing_extensions import TypedDict
 class Pathofexile:
     def __init__(self, bot):
         self.bot = bot
+        self.bot.loop.run_until_complete(self.initialize_database_poe())
+        #self.bot.loop.run_until_complete(self.get_cur([4,5]))
 
-    async def event_ready(self):
-        await self.initialize_database_poe()
 
     async def initialize_database_poe(self):
 
@@ -44,7 +44,6 @@ class Pathofexile:
                 )
                 """
             )
-        await self.get_cur([4,5])
 
     async def get_leagues(self, league_ids: list) -> list:
         """
@@ -64,6 +63,7 @@ class Pathofexile:
                 api_response: Optional[dict] = await self.get_json(url, **params)
                 if api_response is None:
                     print("There's been an error")
+                    print(index, item)
                     continue
                 for entry in api_response['lines']: # type: dict
                     base_type: str = 'None'
@@ -127,12 +127,13 @@ class Pathofexile:
         WHERE lower(league) = $2 and timestamp >= ( now() - INTERVAL '12 hours')
         order by similarity desc, timestamp desc
         """,
-        item_name, league.lower()
+        item_name, league.casefold()
         )
 
         # url = 
         # query = 
         # await get_json(url, **parameters)
+        print(value)
         if value['similarity'] < 0.3:
             await ctx.send(f'@{ctx.author.name}, There is no item matching closely enough with your request and have an estimated value of 50 chaos or above.')
             return
