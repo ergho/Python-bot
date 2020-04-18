@@ -1,10 +1,11 @@
 from twitchio.ext import commands
-
+from typing import List
 
 @commands.cog()
 class Points:
     def __init__(self, bot):
         self.bot = bot
+        #self.bot.loop.run_until_complete()
     # todo, maybe add something to do with the points?
     # todo, move the points adding and create database here rather than main cog?
     @commands.command(aliases=('points',))
@@ -30,7 +31,6 @@ class Points:
     async def bulk_add_points(self, ctx, amount: int) -> None:
         if ctx.author.is_mod == 1:
             users = await self.bot.get_chatters(ctx.channel.name)
-            users.all: list[str]
             for username in users.all: # type: str
                 if username == self.bot.nick:
                     continue
@@ -61,15 +61,17 @@ class Points:
         )
         return points
     #Only really for test to print all values
-    @commands.command(name='getall')
-    async def get_all_values(self, ctx) -> None:
-        points: dict[int, int] = dict(await self.bot.db.fetch(
-            """
-            SELECT user_id, points
-            FROM twitch.points
-            """
-        ))
-        print(points)
+    # @commands.command(name='getall')
+    # async def get_all_values(self, ctx) -> None:
+    #     points: List[Dict[str, int]] = await self.bot.db.fetch(
+    #         """
+    #         SELECT user_id, points
+    #         FROM twitch.points
+    #         """
+    #     )
+    #     print(points)
+    #     for i in points:
+    #         print(i['user_id'], i['points'])
 
     async def modify_points(self, ctx, amount: int, username: str, modify: str) -> None:
         points: int = await self.get_points(ctx, username)

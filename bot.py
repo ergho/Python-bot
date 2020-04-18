@@ -9,7 +9,7 @@ import toml
 import twitchio
 from twitchio.ext import commands
 from utility import logging
-
+from typing import Any, MutableMapping
 
 class Bot(commands.Bot):
     def __init__(self, loop=None, **kwargs):
@@ -18,14 +18,15 @@ class Bot(commands.Bot):
 
         super().__init__(loop=loop, **kwargs)
 
-        for file in Path('cogs').iterdir():
-            if file.with_suffix('.py').is_file():
-                self.load_module('cogs.' + file.name[:-3])
+
         self.aiohttp_session = None
         self.db = self.database = self.database_connection_pool = None
         self.connected_to_database = asyncio.Event()
         self.connected_to_database.set()
         loop.run_until_complete(self.initialize_database())
+        for file in Path('cogs').iterdir():
+            if file.with_suffix('.py').is_file():
+                self.load_module('cogs.' + file.name[:-3])
 
     async def connect_to_database(self):
         if self.database_connection_pool:
@@ -77,27 +78,6 @@ class Bot(commands.Bot):
                 command             TEXT,
                 message             TEXT,
                 PRIMARY KEY         (channel, command)
-            )
-            """)
-            # should i make this part of main bot or a new cog?
-        await self.db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS twitch.quotes (
-                channel             TEXT NOT NULL,
-                quote               TEXT NOT NULL,
-                quote_id            INT GENERATED ALWAYS AS IDENTITY,
-                PRIMARY KEY         (channel, quote)
-            )
-            """)
-        #should i keep this here on in moderation cog?
-        await self.db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS twitch.banlist (
-                timestamp           TIMESTAMPTZ PRIMARY KEY DEFAULT NOW(),
-                channel             TEXT,
-                username            TEXT,
-                reason              TEXT,
-                duration            TEXT
             )
             """)
 
@@ -163,14 +143,13 @@ class Bot(commands.Bot):
             await ctx.channel.send(f"Hi, @{ctx.author.name}!")
 
     async def event_command_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
-            await ctx.send(str(error).replace('`', "'").replace('<class', '').replace('>', ''))
-
-        elif isinstance(error, commands.CommandNotFound):
+        if isinstance(error, commands.CommandNotFound):
             await ctx.send(f"That isn't a valid command @{ctx.author.name}")
 
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f'Your command is missing an argument @{ctx.author.name}')
+        else:
+            logging.twitchio_logger.error(f'[{ctx.channel.name}] {error}')
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
@@ -178,10 +157,12 @@ class Bot(commands.Bot):
     @commands.command(name='test')
     async def test(self, ctx):
         await ctx.send('Test Command')
-
-
+        lel = await self.get_users('ergho')
+        #print(params['owner']['user_id'] == lel[0].id)
+        if params['owner']['user_id'] == lel[0].id:
+            print('Hello owner') 
 if __name__ == '__main__':
 
-    params = toml.load('config.toml')
+    params: MutableMapping[str, Any] = toml.load('config.toml')
     bot = Bot(prefix='!', **params['botconf'])
     bot.run()

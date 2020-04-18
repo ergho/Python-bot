@@ -80,32 +80,32 @@ class Dice:
         else:
             return 0  # invalid input
 
-    async def dice_value(self, roll: str, value: list) -> list:
+    async def dice_value(self, roll: str, value: list) -> List[int]:
         dice: str = roll.split("d")[0]
         value[0] = int(dice)
         return value
 
-    async def sides_value(self, roll: str, value: list) -> list:
+    async def sides_value(self, roll: str, value: list) -> List[int]:
         sides: str = re.split(r"[d\+\-]\s*", roll)[1]
         value[1] = int(sides)
         return value
 
-    async def add_value(self, roll: str, value: list) -> list:
+    async def add_value(self, roll: str, value: list) -> List[int]:
         add: str = re.split(r'[d\+]\s*', roll)[2]
         value[2] = int(add)
         return value
 
-    async def sub_value(self, roll: str, value: list) -> list:
+    async def sub_value(self, roll: str, value: list) -> List[int]:
         sub: str = re.split(r'[d\-]\s*', roll)[2]
         value[3] = int(sub)
         return value
 
-    async def drop_value(self, roll: str, value: list) -> list:
+    async def drop_value(self, roll: str, value: list) -> List[int]:
         drop: str = re.split(r'[d]\s*', roll)[2]
         value[4] = int(drop)
         return value
 
-    async def split(self, flist: list, roll: str) -> list:
+    async def split(self, flist: list, roll: str) -> List[int]:
         parameters: List[int] = [0, 0, 0, 0, 0]
         for func in flist: # type: Any
             try:
@@ -118,7 +118,7 @@ class Dice:
     async def unpack(self, result: list) -> str:
         return ', '.join(str(x) for x in result)
 
-    async def rolling_dice(self, dice: int, size: int) -> list:
+    async def rolling_dice(self, dice: int, size: int) -> List[int]:
         result: List[int] = []
         for i in range(dice):
             roll: int = random.randint(1, size)
