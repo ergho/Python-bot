@@ -96,7 +96,7 @@ class Bot(commands.Bot):
         channel = str(user.channel)
 
         if username != self.nick:
-            already_exists = await self.db.fetchval(
+            already_exists: int = await self.db.fetchval(
                 """
             SELECT user_id FROM twitch.users
             WHERE username = $1 AND channel = $2
@@ -131,15 +131,15 @@ class Bot(commands.Bot):
             datetime.datetime.now(), message.channel.name, message.author.name, message.content)
 
         'Always run on all messages'
-        if message.author.name.lower() == self.nick.lower():
+        if message.author.name.casefold() == self.nick.casefold():
             return
-        # Potentially allowing for different context or addoing onto context for later work
-        # 
+        # allows for loading in custom class for context,
+        # probably not gonna be needed, but leaving the option open.
         ctx = await self.get_context(message, cls=twitchio.Context)
 
         await self.handle_commands(message, ctx=ctx)
 
-        if 'hello' in ctx.content.lower():
+        if 'hello' in ctx.content.casefold():
             await ctx.channel.send(f"Hi, @{ctx.author.name}!")
 
     async def event_command_error(self, ctx, error):
@@ -156,11 +156,12 @@ class Bot(commands.Bot):
 
     @commands.command(name='test')
     async def test(self, ctx):
+        #print(self.commands)
         await ctx.send('Test Command')
-        lel = await self.get_users('ergho')
-        #print(params['owner']['user_id'] == lel[0].id)
-        if params['owner']['user_id'] == lel[0].id:
-            print('Hello owner') 
+        # lel = await self.get_users('ergho')
+        # #print(params['owner']['user_id'] == lel[0].id)
+        # if params['owner']['user_id'] == lel[0].id:
+        #     print('Hello owner') 
 if __name__ == '__main__':
 
     params: MutableMapping[str, Any] = toml.load('config.toml')
