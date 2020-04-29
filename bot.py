@@ -92,7 +92,7 @@ class Bot(commands.Bot):
         'Adds all users to the database and adds starting points'
         # Todo check on how well this scales? should i keep the points adding here?
         #print(type(user))
-        username = str(user.name).rstrip()
+        username = str(user.name).strip()
         channel = str(user.channel)
 
         if username != self.nick:
@@ -153,6 +153,11 @@ class Bot(commands.Bot):
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
+    
+    @commands.command(aliases=('so', 'shoutout'))
+    async def shoutouts(self, ctx, username: str) -> None:
+        if ctx.author.is_mod == 1:
+            await ctx.send(f'This is a shoutout to another fun and awesome streamer, https://www.twitch.tv/{username}')
 
     @commands.command(name='test')
     async def test(self, ctx):

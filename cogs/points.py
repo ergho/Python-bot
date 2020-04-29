@@ -22,8 +22,9 @@ class Points:
     @commands.command(aliases=('a_points', 'adding_points'))
     async def add_points(self, ctx, amount: int, username: str) -> None:
         if ctx.author.is_mod == 1:
-            await self.modify_points(ctx, amount, username, 'add')
-            await ctx.send(f'{username} now have {amount} points.')
+            
+            points: int = await self.modify_points(ctx, amount, username, 'add')
+            await ctx.send(f'{username} now have {points} points.')
         else:
             await ctx.send('Mod only command!')
 
@@ -42,8 +43,8 @@ class Points:
     @commands.command(aliases=('r_points',))
     async def remove_points(self, ctx, amount: int, username: str) -> None:
         if ctx.author.is_mod == 1:
-            await self.modify_points(ctx, amount, username, 'sub')
-            await ctx.send(f'{username}, now have {amount} points @{ctx.author.name}')
+            points: int = await self.modify_points(ctx, amount, username, 'sub')
+            await ctx.send(f'{username}, now have {points} points @{ctx.author.name}')
 
     async def get_points(self, ctx, username: str) -> int:
         # To do consider using joins rather than subquery,
@@ -73,7 +74,7 @@ class Points:
     #     for i in points:
     #         print(i['user_id'], i['points'])
 
-    async def modify_points(self, ctx, amount: int, username: str, modify: str) -> None:
+    async def modify_points(self, ctx, amount: int, username: str, modify: str) -> int:
         points: int = await self.get_points(ctx, username)
         if modify.casefold() == 'add':
             points = points + amount
@@ -93,3 +94,4 @@ class Points:
             """,
             points, username, ctx.channel.name
         )
+        return points

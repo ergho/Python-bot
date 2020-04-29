@@ -13,16 +13,15 @@ class Moderation:
         self.bot = bot
         self.allowed_users: Dict[str, List[str]] = {}
         self.banned_phrases: Dict[str, List[str]] = {}
+        self.pattern = re.compile(r'[^A-Za-z0-9 ]')
         self.bot.loop.run_until_complete(self.initialize_cog())
 
     # async def event_message(self, ctx):
-    #     pass
-        # print()
-        # if self.banned_phrases in ctx.content.casefold():
-        #     if ctx.author.is_mod != 1:
-        #         print('silly')
-        #     print('you have power')
-
+    #     #await self.parse_messages(ctx)
+    #     ## add parser function
+    #     if 'hello' in ctx.content:
+    #         print('silly ergho')
+        
     async def initialize_cog(self):
         await self.intialize_database()
         await self.set_vipusers()
@@ -54,6 +53,38 @@ class Moderation:
                 PRIMARY KEY         (channel, username)
             )
             """)
+    async def parse_messages(self, ctx) -> None:
+        if ctx.author.is_mod == 1 or ctx.author.name == self.bot.nick:
+            return
+        message: str = self.pattern.sub('', ctx.content.casefold())
+        message_list: List[str] = message.split(' ')
+        for word in self.banned_phrases[ctx.channel.name]:
+            if word in message_list:
+                await ctx.channel.timeout(ctx.author.name , 10, "Please keep a civil language")
+                
+    async def add_wordlist(self, ctx,  word: str) -> None:
+        pass
+        await self.bot.db.execute(
+            """
+            INSERT INTO twitch.wordlist (channel, word)
+            VALUES ($1, $2)
+            ON CONFLICT (channel, word)
+            DO NOTHING
+            """,
+            ctx.channel.name, word
+        )
+        await self.set_wordlist()
+
+    async def remove_wordlist(self, ctx, word:str) -> None:
+        
+        await self.bot.db.execute(
+            """
+            DELETE FROM twitch.wordlist
+            WHERE channel = $1 AND word = $2
+            """,
+            ctx.channel.name, word
+        )
+        await self.set_wordlist()
 
     async def set_wordlist(self) -> None:
         wordlist: List[Dict[str, str]] = await self.bot.db.fetch(

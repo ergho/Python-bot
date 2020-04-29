@@ -55,6 +55,28 @@ class Pathofexile:
             league: dict = await resp.json()
             return [league[x]['id'] for x in league_ids]
 
+    async def get_cur(self, league_ids: list) -> None:
+        """
+        param: league_ids:: takes a list of numbers
+        0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
+        """
+        league: List[str] = await self.get_leagues(league_ids)
+        currency_types: List[str] = ['Currency', 'Fragment']
+        item_types: List[str] = ['Oil', 'Incubator', 'Scarab','Fossil', 'Resonator',
+                      'Essence', 'DivinationCard', 'Prophecy', 'BaseType',
+                      'UniqueMap', 'Map', 'UniqueJewel', 'UniqueFlask',
+                      'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory']
+        price_types: List[str] = ['chaosEquivalent', 'chaosValue']
+        base: List[str] = ['currencyoverview', 'itemoverview']
+        name_types: List[str] = ['currencyTypeName', 'name']
+        while True:
+            delay: int = random.randrange(3500, 3800)
+
+            await self.get_currency_from_api(league, base[0], currency_types, price_types[0], name_types[0])
+            await self.get_currency_from_api(league, base[1], item_types, price_types[1], name_types[1])
+
+            await asyncio.sleep(delay)
+
     async def get_currency_from_api(self, league_ids: list, base: str, types: list, price_types: str, name_types: str):
         url: str = f'https://poe.ninja/api/data/{base}?'
         for index in league_ids: # type: str
@@ -78,41 +100,20 @@ class Pathofexile:
                             """,
                             datetime.datetime.now(), index, entry[name_types], base_type, entry['detailsId'], entry[price_types]
                             )
+
     async def get_json(self, url: str, amount_of_tries: int=5, **parameters) -> Optional[dict]:
-        tries: int = 0
-        api_response: Optional[dict] = None
-        while api_response is None and tries < amount_of_tries:
-            try:
-                async with self.bot.aiohttp_session.get(url, params=parameters) as resp:
-                    resp.raise_for_status()
-                    api_response = await resp.json()
-            except Exception as e:
-                tries += 1
-                delay: int = 2 ** tries + 1
-                await asyncio.sleep(delay)
-        return api_response
-    
-    async def get_cur(self, league_ids: list) -> None:
-        """
-        param: league_ids:: takes a list of numbers
-        0 = Standard, 1 = Hardcore, 4= Temp, 5 = Hardcore Temp
-        """
-        league: List[str] = await self.get_leagues(league_ids)
-        currency_types: List[str] = ['Currency', 'Fragment']
-        item_types: List[str] = ['Oil', 'Incubator', 'Scarab','Fossil', 'Resonator',
-                      'Essence', 'DivinationCard', 'Prophecy', 'BaseType',
-                      'UniqueMap', 'Map', 'UniqueJewel', 'UniqueFlask',
-                      'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory']
-        price_types: List[str] = ['chaosEquivalent', 'chaosValue']
-        base: List[str] = ['currencyoverview', 'itemoverview']
-        name_types: List[str] = ['currencyTypeName', 'name']
-        while True:
-            delay: int = random.randrange(3500, 3800)
-
-            await self.get_currency_from_api(league, base[0], currency_types, price_types[0], name_types[0])
-            await self.get_currency_from_api(league, base[1], item_types, price_types[1], name_types[1])
-
-            await asyncio.sleep(delay)
+            tries: int = 0
+            api_response: Optional[dict] = None
+            while api_response is None and tries < amount_of_tries:
+                try:
+                    async with self.bot.aiohttp_session.get(url, params=parameters) as resp:
+                        resp.raise_for_status()
+                        api_response = await resp.json()
+                except Exception as e:
+                    tries += 1
+                    delay: int = 2 ** tries + 1
+                    await asyncio.sleep(delay)
+            return api_response
 
     @commands.command(aliases=('price', 'cprice'))
     async def get_currency_price(self, ctx, item_name: str, league: str = 'Delirium') -> None:
