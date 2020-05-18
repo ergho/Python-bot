@@ -1,0 +1,5 @@
+# TwitchIO
+git+git://github.com/TwitchIO/Twitchio.git
+
+aiohttp==3.6.2
+asyncpg==0.20.1

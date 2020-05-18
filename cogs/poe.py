@@ -3,9 +3,10 @@ import datetime
 import random
 
 from twitchio.ext import commands
-from typing import Dict, List, Union, Optional
+# Remove Typed Dict if running version below 3.8
+from typing import Dict, List, Union, Optional, TypedDict
 # required for python versions 3.7 as TypedDict isn't in typing until 3.8
-from typing_extensions import TypedDict 
+# from typing_extensions import TypedDict 
 
 
 @commands.cog()
@@ -13,7 +14,7 @@ class Pathofexile:
     def __init__(self, bot):
         self.bot = bot
         self.bot.loop.run_until_complete(self.initialize_database_poe())
-        #self.bot.loop.run_until_complete(self.get_cur([4,5]))
+        self.bot.loop.run_until_complete(self.get_cur([4,5]))
 
 
     async def initialize_database_poe(self):
@@ -109,7 +110,7 @@ class Pathofexile:
                     async with self.bot.aiohttp_session.get(url, params=parameters) as resp:
                         resp.raise_for_status()
                         api_response = await resp.json()
-                except Exception as e:
+                except Exception:
                     tries += 1
                     delay: int = 2 ** tries + 1
                     await asyncio.sleep(delay)

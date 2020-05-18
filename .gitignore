@@ -1,6 +1,4 @@
 *.log*
 *__pycache__
 *.toml
-tzshizzle.py
-Discord/bot.py
 .*
