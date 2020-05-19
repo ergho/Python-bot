@@ -11,13 +11,13 @@ from twitchio.ext import commands
 from utility import logging
 from typing import Any, MutableMapping
 
+
 class Bot(commands.Bot):
     def __init__(self, loop=None, **kwargs):
 
         loop = loop or asyncio.get_event_loop()
 
         super().__init__(loop=loop, **kwargs)
-
 
         self.aiohttp_session = None
         self.db = self.database = self.database_connection_pool = None
@@ -62,7 +62,7 @@ class Bot(commands.Bot):
                 unique              (channel, username)
             )
             """)
-            #keep here or in points cog?
+        # keep here or in points cog?
         await self.db.execute(
             """
             CREATE TABLE IF NOT EXISTS twitch.points (
@@ -91,7 +91,7 @@ class Bot(commands.Bot):
     async def event_join(self, user):
         'Adds all users to the database and adds starting points'
         # Todo check on how well this scales? should i keep the points adding here?
-        #print(type(user))
+        # print(type(user))
         username = str(user.name).strip()
         channel = str(user.channel)
 
@@ -153,7 +153,7 @@ class Bot(commands.Bot):
 
     async def event_raw_data(self, data):
         logging.raw_data_logger.info(data)
-    
+
     @commands.command(aliases=('so', 'shoutout'))
     async def shoutouts(self, ctx, username: str) -> None:
         if ctx.author.is_mod == 1:
@@ -162,7 +162,8 @@ class Bot(commands.Bot):
     @commands.command(name='test')
     async def test(self, ctx):
         await ctx.send('Test Command')
- 
+
+
 if __name__ == '__main__':
 
     params: MutableMapping[str, Any] = toml.load('config.toml')
