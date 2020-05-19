@@ -161,12 +161,8 @@ class Bot(commands.Bot):
 
     @commands.command(name='test')
     async def test(self, ctx):
-        #print(self.commands)
         await ctx.send('Test Command')
-        # lel = await self.get_users('ergho')
-        # #print(params['owner']['user_id'] == lel[0].id)
-        # if params['owner']['user_id'] == lel[0].id:
-        #     print('Hello owner') 
+ 
 if __name__ == '__main__':
 
     params: MutableMapping[str, Any] = toml.load('config.toml')
